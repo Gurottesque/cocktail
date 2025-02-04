@@ -7,17 +7,28 @@ export async function GET() {
 }
 
 export async function POST({ request }) {
-  const data = await request.json();
-  data.total_quantity = data.quantity * data.unit_quantity;
-
+  const rawData = await request.json();
+  
+  // Eliminar campos que no deben enviarse
+  const { id, total_quantity, ...cleanData } = rawData;
+  
+  // No necesitas calcular total_quantity manualmente (ya es GENERATED)
   const { data: product, error } = await supabase
     .from('products')
-    .insert(data)
+    .insert(cleanData)  // <-- Usar solo los campos necesarios
     .select()
     .single();
 
+  if (error) {
+    console.error('Error en inserción:', error);
+    return json(
+      { error: error.message },
+      { status: 400 }
+    );
+  }
+
   return json(
-    { id: product.id }, 
-    { status: error ? 400 : 201 }
+    { id: product.id },
+    { status: 201 }
   );
 }

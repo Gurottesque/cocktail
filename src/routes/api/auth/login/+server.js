@@ -4,7 +4,6 @@ import { supabase } from '$lib/supabaseClient';
 
 export async function POST({ request, cookies }) {
   const { username, password } = await request.json();
-  
   try {
     const { data: user, error } = await supabase
       .from('users')
@@ -12,6 +11,12 @@ export async function POST({ request, cookies }) {
       .eq('username', username)
       .single();
 
+      if (error) {
+        console.error('Error en consulta:', error);
+        return json({ error: 'Error en el servidor' }, { status: 500 });
+      }
+    
+      console.log(user.password)
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return json({ error: 'Credenciales inválidas' }, { status: 401 });
     }
