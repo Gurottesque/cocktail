@@ -1,6 +1,9 @@
-import db from '$lib/db';
+import { supabase } from '$lib/supabaseClient';
 
 export async function load() {
-  const products = db.prepare('SELECT * FROM products').all();
+  const { data: products } = await supabase
+    .from('products')
+    .select('*');
+
   return { products };
 }

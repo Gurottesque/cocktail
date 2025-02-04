@@ -1,9 +1,4 @@
-import { supabase } from '$lib/supabaseClient';
-
-export async function load() {
-  const { data: products } = await supabase
-    .from('products')
-    .select('*');
-
-  return { products };
-}
+export async function load({ fetch }) {
+    // Si necesitas datos iniciales del servidor, puedes cargarlos aquí
+    return {};
+  }
