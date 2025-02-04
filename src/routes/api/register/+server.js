@@ -1,81 +1,68 @@
-import db from '$lib/db';
+import { supabase } from '$lib/supabaseClient';
 import { json } from '@sveltejs/kit';
 
 export async function GET() {
-  const sales = db.prepare(`
-    SELECT r.*, d.name as drink_name, d.price
-    FROM register r
-    JOIN drinks d ON r.drink_id = d.id
-    WHERE DATE(r.bought_at) = DATE('now')
-    ORDER BY r.bought_at DESC
-  `).all();
-  
-  return json(sales);
+  const { data } = await supabase
+    .from('register')
+    .select(`
+      id,
+      bought_at,
+      drinks(name, price)
+    `)
+    .gte('bought_at', new Date().toISOString().split('T')[0]);
+
+  return json(data);
 }
 
 export async function POST({ request }) {
   const { drinkId } = await request.json();
+  
+  const { data: sale } = await supabase
+    .from('register')
+    .insert({ drink_id: drinkId })
+    .select()
+    .single();
 
-  try {
-    const transaction = db.transaction(() => {
-      // Registrar la venta
-      const sale = db.prepare(`
-        INSERT INTO register (drink_id) VALUES (?)
-      `).run(drinkId);
+  const { data: ingredients } = await supabase
+    .from('drink_craft')
+    .select('product_id, product_quantity')
+    .eq('drink_id', drinkId);
 
-      // Consumir ingredientes
-      const ingredients = db.prepare(`
-        SELECT product_id, product_quantity 
-        FROM drink_craft 
-        WHERE drink_id = ?
-      `).all(drinkId);
-
-      ingredients.forEach(({ product_id, product_quantity }) => {
-        db.prepare(`
-          UPDATE products 
-          SET quantity = quantity - 1,
-              total_quantity = total_quantity - ?
-          WHERE id = ?
-        `).run(product_quantity, product_id);
-      });
-
-      return { id: sale.lastInsertRowid };
+  await Promise.all(ingredients.map(async ({ product_id, product_quantity }) => {
+    await supabase.rpc('update_product_quantity', {
+      product_id,
+      quantity_change: -1,
+      total_change: -product_quantity
     });
+  }));
 
-    return json(transaction());
-  } catch (error) {
-    return json({ error: error.message }, { status: 400 });
-  }
+  return json({ id: sale.id });
 }
 
 export async function DELETE({ params }) {
-  
-  try {
-    const transaction = db.transaction(() => {
-      // Recuperar ingredientes
-      const ingredients = db.prepare(`
-        SELECT product_id, product_quantity 
-        FROM drink_craft 
-        WHERE drink_id = (
-          SELECT drink_id FROM register WHERE id = ?
-        )
-      `).all(params.id);
+  const { data: sale } = await supabase
+    .from('register')
+    .select('drink_id')
+    .eq('id', params.id)
+    .single();
 
-      ingredients.forEach(({ product_id, product_quantity }) => {
-        db.prepare(`
-          UPDATE products 
-          SET quantity = quantity + 1,
-              total_quantity = total_quantity + ?
-          WHERE id = ?
-        `).run(product_quantity, product_id);
-      });
+  const { data: ingredients } = await supabase
+    .from('drink_craft')
+    .select('product_id, product_quantity')
+    .eq('drink_id', sale.drink_id);
 
-      // Eliminar registro
-      db.prepare('DELETE FROM register WHERE id = ?').run(params.id);
+  await Promise.all(ingredients.map(async ({ product_id, product_quantity }) => {
+    await supabase.rpc('update_product_quantity', {
+      product_id,
+      quantity_change: 1,
+      total_change: product_quantity
     });
+  }));
 
-    return json({ success: true });
-  } catch (error) {
-    return json({ error: error.message }, { status: 400 });
-  }
+  await supabase
+    .from('register')
+    .delete()
+    .eq('id', params.id);
+
+  return json({ success: true });
 }

@@ -1,63 +1,52 @@
-import db from '$lib/db';
+import { supabase } from '$lib/supabaseClient';
 import { json } from '@sveltejs/kit';
 
 export async function GET({ url }) {
   const params = {
-    drink: url.searchParams.get('drink') || '',
+    drink: url.searchParams.get('drink'),
     startDate: url.searchParams.get('startDate'),
     endDate: url.searchParams.get('endDate'),
     timeRange: url.searchParams.get('timeRange')
   };
 
-  // Construir query dinámica
-  let query = `
-    SELECT r.id, d.name as drink_name, d.price, 
-           STRFTIME('%Y-%m-%d %H:%M', r.bought_at) as bought_at 
-    FROM register r
-    JOIN drinks d ON r.drink_id = d.id
-    WHERE 1=1
-  `;
+  let query = supabase
+    .from('register')
+    .select(`
+      id,
+      bought_at,
+      drinks(name, price)
+    `);
 
-  const conditions = [];
-  const queryParams = [];
-
-  // Filtrar por nombre de bebida
   if (params.drink) {
-    conditions.push('d.name LIKE ?');
-    queryParams.push(`%${params.drink}%`);
+    query = query.ilike('drinks.name', `%${params.drink}%`);
   }
 
-  // Filtrar por rango de fecha
   if (params.startDate && params.endDate) {
-    conditions.push('DATE(r.bought_at) BETWEEN ? AND ?');
-    queryParams.push(params.startDate, params.endDate);
+    query = query
+      .gte('bought_at', params.startDate)
+      .lte('bought_at', params.endDate);
   }
 
-  // Filtrar por rangos predefinidos
   if (params.timeRange) {
     const now = new Date();
     switch(params.timeRange) {
       case 'today':
-        conditions.push("DATE(r.bought_at) = DATE('now')");
+        query = query.gte('bought_at', now.toISOString().split('T')[0]);
         break;
       case 'week':
-        conditions.push("STRFTIME('%Y-%W', r.bought_at) = STRFTIME('%Y-%W', 'now')");
+        const startWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+        query = query.gte('bought_at', startWeek.toISOString());
         break;
       case 'month':
-        conditions.push("STRFTIME('%Y-%m', r.bought_at) = STRFTIME('%Y-%m', 'now')");
+        query = query.gte('bought_at', new Date(now.getFullYear(), now.getMonth(), 1).toISOString());
         break;
     }
   }
 
-  // Combinar condiciones
-  if (conditions.length > 0) {
-    query += ' AND ' + conditions.join(' AND ');
-  }
-
-  query += ' ORDER BY r.bought_at DESC LIMIT 500';
-
-  const stmt = db.prepare(query);
-  const results = stmt.all(...queryParams);
-
-  return json(results);
+  const { data } = await query.order('bought_at', { ascending: false }).limit(500);
+  
+  return json(data.map(r => ({
+    ...r,
+    bought_at: new Date(r.bought_at).toISOString().replace('T', ' ').substring(0, 16)
+  })));
 }

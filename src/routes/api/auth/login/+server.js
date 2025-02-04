@@ -1,13 +1,17 @@
 import { json, redirect } from '@sveltejs/kit';
 import bcrypt from 'bcrypt';
-import { db } from '$lib/db';
+import { supabase } from '$lib/supabaseClient';
 
 export async function POST({ request, cookies }) {
   const { username, password } = await request.json();
   
   try {
-    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-    
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('username', username)
+      .single();
+
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return json({ error: 'Credenciales inválidas' }, { status: 401 });
     }
@@ -16,7 +20,7 @@ export async function POST({ request, cookies }) {
       path: '/',
       httpOnly: true,
       sameSite: 'strict',
-      maxAge: 60 * 60 * 24 // 1 día
+      maxAge: 60 * 60 * 24
     });
 
     return json({ success: true });

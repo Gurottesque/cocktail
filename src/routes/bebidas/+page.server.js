@@ -1,25 +1,31 @@
-import db from '$lib/db';
+import { supabase } from '$lib/supabaseClient';
 
 export async function load() {
-  const drinks = db.prepare(`
-    SELECT d.*,
-    JSON_GROUP_ARRAY(JSON_OBJECT(
-      'product_id', dc.product_id,
-      'name', p.name,
-      'product_quantity', dc.product_quantity
-    )) as ingredients
-    FROM drinks d
-    LEFT JOIN drink_craft dc ON d.id = dc.drink_id
-    LEFT JOIN products p ON dc.product_id = p.id
-    GROUP BY d.id
-  `).all();
+  // Obtener bebidas con sus ingredientes
+  const { data: drinks } = await supabase
+    .from('drinks')
+    .select(`
+      *,
+      drink_craft(
+        product_id,
+        product_quantity,
+        products(name)
+      )
+    `);
 
-  const products = db.prepare('SELECT * FROM products').all();
+  // Obtener todos los productos
+  const { data: products } = await supabase
+    .from('products')
+    .select('*');
 
   return {
     drinks: drinks.map(d => ({
       ...d,
-      ingredients: d.ingredients ? JSON.parse(d.ingredients) : []
+      ingredients: d.drink_craft.map(i => ({
+        product_id: i.product_id,
+        name: i.products.name,
+        product_quantity: i.product_quantity
+      }))
     })),
     products
   };
