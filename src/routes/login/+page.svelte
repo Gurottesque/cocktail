@@ -5,23 +5,25 @@
     let error = '';
   
     async function handleLogin() {
-      try {
-        const response = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
-  
-        if (!response.ok) {
-          error = await response.text();
-          return;
-        }
-  
-        await goto('/');
-      } catch (err) {
-        error = 'Error de conexión';
-      }
+  try {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const result = await response.json(); // Parsear la respuesta como JSON
+
+    if (!response.ok) {
+      error = result.error; // Usar el mensaje de error del JSON
+      return;
     }
+
+    await goto('/');
+  } catch (err) {
+    error = 'Error de conexión';
+  }
+}
   </script>
   
   <div class="min-h-screen flex items-center justify-center bg-gray-50">
