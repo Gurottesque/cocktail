@@ -11,7 +11,12 @@ export async function GET() {
     `)
     .gte('bought_at', new Date().toISOString().split('T')[0]);
 
-  return json(data);
+  return json(data.map(sale => ({
+    id: sale.id,
+    bought_at: sale.bought_at,
+    drink_name: sale.drinks.name,
+    price: sale.drinks.price
+  })));
 }
 
 export async function POST({ request }) {

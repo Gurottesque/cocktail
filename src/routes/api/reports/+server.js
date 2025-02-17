@@ -42,11 +42,19 @@ export async function GET({ url }) {
         break;
     }
   }
-
+  
   const { data } = await query.order('bought_at', { ascending: false }).limit(500);
   
   return json(data.map(r => ({
-    ...r,
-    bought_at: new Date(r.bought_at).toISOString().replace('T', ' ').substring(0, 16)
+    id: r.id,
+    bought_at: new Date(r.bought_at).toLocaleString('es-ES', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
+    drink_name: r.drinks.name,
+    price: r.drinks.price
   })));
 }
