@@ -39,7 +39,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
               </div>
-              <h2 class="text-2xl font-bold text-white mb-2">Bebidas</h2>
+              <h2 class="text-2xl font-bold text-white mb-2">Cocteles</h2>
               <p class="text-white/90 text-sm">Creación y edición de cocteles</p>
             </div>
             <div class="flex justify-end">

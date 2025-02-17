@@ -103,33 +103,35 @@
       <div class="border-t pt-4">
         <h3 class="text-lg font-medium mb-4">Ingredientes Actuales</h3>
         
-        {#each existingIngredients as ingredient, index (index)}
-          <div class="flex gap-4 mb-3 items-center">
-            <div class="flex-1">
-              <input
-                value={ingredient.name}
-                class="block w-full rounded-md border-gray-300 shadow-sm bg-gray-100"
-                disabled
-              />
+        <div class="max-h-[300px] overflow-y-auto"> 
+          {#each existingIngredients as ingredient, index (index)}
+            <div class="flex gap-4 mb-3 items-center">
+              <div class="flex-1">
+                <input
+                  value={ingredient.name}
+                  class="block w-full rounded-md border-gray-300 shadow-sm bg-gray-100"
+                  disabled
+                />
+              </div>
+              
+              <div class="w-32">
+                <input
+                  type="number"
+                  bind:value={ingredient.quantity}
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  min="1"
+                />
+              </div>
+      
+              <button
+                on:click={() => removeIngredient(index)}
+                class="text-red-500 hover:text-red-700"
+              >
+                ✕
+              </button>
             </div>
-            
-            <div class="w-32">
-              <input
-                type="number"
-                bind:value={ingredient.quantity}
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                min="1"
-              />
-            </div>
-  
-            <button
-              on:click={() => removeIngredient(index)}
-              class="text-red-500 hover:text-red-700"
-            >
-              ✕
-            </button>
-          </div>
-        {/each}
+          {/each}
+        </div>
       </div>
   
       <!-- Sección para agregar nuevos ingredientes -->
