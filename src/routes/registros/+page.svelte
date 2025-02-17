@@ -109,6 +109,8 @@
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha y Hora</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bebida</th>
                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Precio</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Costo</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ganancia</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -117,6 +119,12 @@
                   <td class="px-6 py-4 whitespace-nowrap">{sale.bought_at}</td>
                   <td class="px-6 py-4">{sale.drink_name}</td>
                   <td class="px-6 py-4 text-right">${sale.price}</td>
+                  <td class="px-6 py-4 text-right">${sale.cost.toLocaleString()}</td>
+                  <td class="px-6 py-4 text-right">
+                    <span class={sale.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      ${sale.profit.toLocaleString()}
+                    </span>
+                  </td>
                 </tr>
               {/each}
             </tbody>

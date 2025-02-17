@@ -2,25 +2,34 @@ import { supabase } from '$lib/supabaseClient';
 import { json } from '@sveltejs/kit';
 
 export async function GET({ params }) {
-  const { data: drink, error } = await supabase
+  const { data: drinks } = await supabase
     .from('drinks')
-    .select('*')
-    .eq('id', params.id)
-    .single();
+    .select(`
+      *,
+      drink_craft(
+        product_id,
+        product_quantity,
+        products(name, buy_price, unit_quantity)
+      )
+    `);
 
-  const { data: ingredients } = await supabase
-    .from('drink_craft')
-    .select('products(name, id), product_quantity')
-    .eq('drink_id', params.id);
+  const { data: products } = await supabase
+    .from('products')
+    .select('*');
 
-  return json({ 
-    ...drink, 
-    ingredients: ingredients.map(i => ({
-      name: i.products.name,
-      product_quantity: i.product_quantity,
-      product_id: i.products.id
-    }))
-  });
+  return {
+    drinks: drinks.map(d => ({
+      ...d,
+      ingredients: d.drink_craft.map(i => ({
+        product_id: i.product_id,
+        name: i.products.name,
+        product_quantity: i.product_quantity,
+        buy_price: i.products.buy_price,         // Nuevo
+        unit_quantity: i.products.unit_quantity  // Nuevo
+      }))
+    })),
+    products
+  };
 }
 
 export async function PUT({ request, params }) {

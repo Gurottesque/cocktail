@@ -7,6 +7,23 @@
   let showModal = false;
   let selectedDrink = null;
 
+  const calculateCostAndProfit = (drink) => {
+    if (!drink.ingredients?.length) return { cost: 0, profit: drink.price };
+    
+    const cost = drink.ingredients.reduce((total, ingredient) => {
+      const product = data.products.find(p => p.id === ingredient.product_id);
+      if (!product) return total;
+      
+      // Calcular costo proporcional: (precio de compra / unidad) * cantidad usada
+      const costoPorUnidad = product.buy_price / product.unit_quantity;
+      return total + (costoPorUnidad * ingredient.product_quantity);
+    }, 0);
+
+    return {
+      cost: Math.round(cost), // Redondear para evitar decimales
+      profit: drink.price - Math.round(cost)
+    };
+  };
   const handleDelete = async (id) => {
     if (confirm('¿Eliminar coctel?')) {
       await fetch(`/api/drinks/${id}`, { method: 'DELETE' });
@@ -16,7 +33,7 @@
 </script>
 
 <svelte:head>
-  <title>Cocteles - BarMix</title>
+  <title>Cocteles</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8">
@@ -40,6 +57,8 @@
         <tr>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Costo</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ganancia</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ingredientes</th>
           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
         </tr>
@@ -49,6 +68,14 @@
           <tr>
             <td class="px-6 py-4 whitespace-nowrap">{drink.name}</td>
             <td class="px-6 py-4 whitespace-nowrap">${drink.price}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              ${calculateCostAndProfit(drink).cost.toString()}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class={calculateCostAndProfit(drink).profit >= 0 ? 'text-green-600' : 'text-red-600'}>
+                ${calculateCostAndProfit(drink).profit.toString()}
+              </span>
+            </td>
             <td class="px-6 py-4">
               {#each drink.ingredients as ingredient}
               <div class="text-sm text-gray-600">

@@ -9,12 +9,20 @@ export async function GET({ url }) {
     timeRange: url.searchParams.get('timeRange')
   };
 
+  // Consulta principal para obtener los registros
   let query = supabase
     .from('register')
     .select(`
       id,
       bought_at,
-      drinks(name, price)
+      drinks(
+        name,
+        price,
+        drink_craft(
+          product_quantity,
+          products(buy_price, unit_quantity)
+        )
+      )
     `);
 
   if (params.drink) {
@@ -44,17 +52,33 @@ export async function GET({ url }) {
   }
   
   const { data } = await query.order('bought_at', { ascending: false }).limit(500);
-  
-  return json(data.map(r => ({
-    id: r.id,
-    bought_at: new Date(r.bought_at).toLocaleString('es-ES', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    }),
-    drink_name: r.drinks.name,
-    price: r.drinks.price
-  })));
+
+  // Procesar los datos
+  const processedData = (data || []).map(r => {
+    const ingredients = r.drinks?.drink_craft || [];
+    
+    // Calcular costo
+    const cost = ingredients.reduce((total, ingredient) => {
+      if (!ingredient.products) return total;
+      const costoPorUnidad = ingredient.products.buy_price / ingredient.products.unit_quantity;
+      return total + (costoPorUnidad * ingredient.product_quantity);
+    }, 0);
+
+    return {
+      id: r.id,
+      bought_at: new Date(r.bought_at).toLocaleString('es-ES', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      drink_name: r.drinks?.name || 'Bebida eliminada',
+      price: r.drinks?.price || 0,
+      cost: Math.round(cost),
+      profit: Math.round((r.drinks?.price || 0) - cost)
+    };
+  });
+
+  return json(processedData);
 }
